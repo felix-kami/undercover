@@ -162,9 +162,23 @@ const gameRules = [
       "- Khi bị vote, tập trung vào những mô tả rõ ràng nhất để đoán từ",
   },
   {
+    title: "Phân chia vai trò",
+    content:
+      "Số lượng người chơi và phân chia vai trò:\n\n" +
+      "4-6 người: (2-4) Dân + 1 Undercover + 1 Mr.White\n" +
+      "7-8 người: (4-5) Dân + 2 Undercover + 1 Mr.White\n" +
+      "9-12 người: (5-8) Dân + 3 Undercover + 1 Mr.White\n" +
+      "13-15 người: (8-10) Dân + 4 Undercover + 1 Mr.White\n" +
+      "16 người: 10 Dân + 5 Undercover + 1 Mr.White\n" +
+      "Trên 16 người: (n-6) Dân + 5 Undercover + 1 Mr.White\n\n" +
+      "Lưu ý: Luôn có 1 Mr.White và 5 Undercover khi số người chơi trên 16.",
+  },
+  {
     title: "Điều kiện thắng",
     content:
-      "- Dân thường thắng: Loại hết Undercover và Mr. White\n- Undercover thắng: số lượng Undercover còn lại bằng hoặc vượt quá số lượng dân thường \n- Mr. White thắng: Đoán đúng từ khi bị loại hoặc sống sót đến 2 người cuối",
+      "- Dân thường thắng: Loại hết Undercover và Mr. White\n" +
+      "- Undercover thắng: Số lượng Undercover còn lại bằng hoặc vượt quá số lượng dân thường\n" +
+      "- Mr. White thắng: Đoán đúng từ khi bị loại hoặc sống sót đến 2 người cuối",
   },
 ];
 
@@ -252,13 +266,13 @@ const Game: FC = () => {
     let undercoverCount = 1; // Mặc định là 1
 
     if (totalPlayers <= 16) {
-      if (totalPlayers === 6) undercoverCount = 1;
+      if (totalPlayers <= 6) undercoverCount = 1;
       else if (totalPlayers <= 8) undercoverCount = 2;
       else if (totalPlayers <= 12) undercoverCount = 3;
       else if (totalPlayers <= 15) undercoverCount = 4;
       else undercoverCount = 5; // 16 người
     } else {
-      undercoverCount = 1; // Trên 16 người chỉ có 1 undercover
+      undercoverCount = 5; // Trên 16 người có 5 undercover
     }
 
     // Số dân thường = tổng số người - (undercover + mrwhite)
