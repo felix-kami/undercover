@@ -117,6 +117,57 @@ const wordPairs = [
   { civilian: "Mạng xã hội", undercover: "Diễn đàn" },
 ];
 
+// Thêm nội dung luật chơi
+const gameRules = [
+  {
+    title: "Mục tiêu",
+    content:
+      "- Dân thường: Tìm và loại Undercover và Mr. White\n- Undercover: Giả làm dân thường và loại họ\n- Mr. White: Đoán được từ của dân thường",
+  },
+  {
+    title: "Cách chơi",
+    content:
+      "1. Mỗi người chơi sẽ được giao một vai trò và một từ (Mr. White không có từ)\n2. Lần lượt mô tả từ của mình mà không nói trực tiếp từ đó\n3. Sau mỗi vòng, người chơi bỏ phiếu loại một người\n4. Khi Mr. White bị vote, có cơ hội đoán từ để thắng",
+  },
+  {
+    title: "Ví dụ cách mô tả",
+    content:
+      "Ví dụ cặp từ: Cà phê ⟷ Trà\n\n" +
+      "Dân thường (Cà phê):\n" +
+      '- "Thức uống này giúp tỉnh táo buổi sáng"\n' +
+      '- "Màu đen, thường uống nóng"\n' +
+      '- "Việt Nam nổi tiếng xuất khẩu loại hạt này"\n\n' +
+      "Undercover (Trà):\n" +
+      '- "Thức uống phổ biến mỗi sáng"\n' +
+      '- "Có thể uống nóng hoặc đá"\n' +
+      '- "Thường pha từ lá khô"\n\n' +
+      "Mr. White:\n" +
+      "- Lắng nghe kỹ và đoán từ chung của các mô tả\n" +
+      "- Mô tả mập mờ để không bị lộ",
+  },
+  {
+    title: "Mẹo chơi",
+    content:
+      "Dân thường:\n" +
+      "- Mô tả đủ rõ để đồng đội hiểu nhưng không quá rõ để Undercover bắt chước\n" +
+      "- Chú ý cách mô tả của người khác, tìm điểm khác biệt\n" +
+      "- Có thể thử test người khác bằng cách mô tả chi tiết đặc trưng\n\n" +
+      "Undercover:\n" +
+      "- Cố gắng mô tả trùng với dân thường nhất có thể\n" +
+      "- Không nên quá im lặng hoặc quá nổi bật\n" +
+      "- Có thể giả vờ nghi ngờ người khác để đánh lạc hướng\n\n" +
+      "Mr. White:\n" +
+      "- Quan sát kỹ những người tự tin khi mô tả\n" +
+      "- Mô tả mơ hồ, dùng từ có thể áp dụng cho nhiều thứ\n" +
+      "- Khi bị vote, tập trung vào những mô tả rõ ràng nhất để đoán từ",
+  },
+  {
+    title: "Điều kiện thắng",
+    content:
+      "- Dân thường thắng: Loại hết Undercover và Mr. White\n- Undercover thắng: số lượng Undercover còn lại bằng hoặc vượt quá số lượng dân thường \n- Mr. White thắng: Đoán đúng từ khi bị loại hoặc sống sót đến 2 người cuối",
+  },
+];
+
 type GameState = "setup" | "naming" | "playing" | "voting" | "ended";
 
 const useDebounce = <T,>(value: T, delay: number): T => {
@@ -194,11 +245,21 @@ const Game: FC = () => {
   const calculateRoles = (totalPlayers: number) => {
     let roles: ("civilian" | "undercover" | "mrwhite")[] = [];
 
-    // Tính số lượng undercover dựa trên số người chơi
-    let undercoverCount = totalPlayers > 10 ? 3 : totalPlayers <= 5 ? 1 : 2;
-
-    // Luôn có 1 Mr. White
+    // Luôn có 1 Mr.White
     const mrwhiteCount = 1;
+
+    // Tính số lượng undercover dựa trên số người chơi
+    let undercoverCount = 1; // Mặc định là 1
+
+    if (totalPlayers <= 16) {
+      if (totalPlayers === 6) undercoverCount = 1;
+      else if (totalPlayers <= 8) undercoverCount = 2;
+      else if (totalPlayers <= 12) undercoverCount = 3;
+      else if (totalPlayers <= 15) undercoverCount = 4;
+      else undercoverCount = 5; // 16 người
+    } else {
+      undercoverCount = 1; // Trên 16 người chỉ có 1 undercover
+    }
 
     // Số dân thường = tổng số người - (undercover + mrwhite)
     const civilianCount = totalPlayers - (undercoverCount + mrwhiteCount);
@@ -209,6 +270,15 @@ const Game: FC = () => {
       ...Array(undercoverCount).fill("undercover"),
       ...Array(mrwhiteCount).fill("mrwhite"),
     ];
+
+    // Hiển thị thông báo phân chia role
+    toast.success(
+      `Phân chia role:\n` +
+        `${civilianCount} Dân thường\n` +
+        `${undercoverCount} Undercover\n` +
+        `1 Mr.White`,
+      { duration: 3000 }
+    );
 
     // Trộn ngẫu nhiên các roles
     return roles.sort(() => Math.random() - 0.5);
@@ -237,15 +307,6 @@ const Game: FC = () => {
       availableWords[Math.floor(Math.random() * availableWords.length)];
     const roles = calculateRoles(playerCount);
     const shuffledRoles = [...roles].sort(() => Math.random() - 0.5);
-
-    // Hiển thị thông báo về số lượng role
-    toast.success(
-      `Bắt đầu game với ${playerCount} người chơi:\n` +
-        `${roles.filter((r) => r === "civilian").length} Dân thường\n` +
-        `${roles.filter((r) => r === "undercover").length} Undercover\n` +
-        `1 Mr. White`,
-      { duration: 3000 }
-    );
 
     const newPlayers: Player[] = shuffledRoles.map((role, index) => ({
       id: index,
@@ -291,10 +352,9 @@ const Game: FC = () => {
       (p) => p.role === "undercover"
     );
     const aliveMrWhites = alivePlayers.filter((p) => p.role === "mrwhite");
-    const aliveImpostors = [...aliveUndercovers, ...aliveMrWhites];
 
-    // Dân thường thắng khi loại hết Undercover và Mr. White
-    if (aliveImpostors.length === 0) {
+    // Dân thường thắng khi loại hết Undercover và Mr.White
+    if (aliveUndercovers.length === 0 && aliveMrWhites.length === 0) {
       setWinner("civilian");
       setGameState("ended");
       setShowResults(true);
@@ -302,34 +362,22 @@ const Game: FC = () => {
       return;
     }
 
-    // Impostor thắng khi chỉ còn 1 dân thường
-    if (aliveCivilians.length <= 1 && aliveImpostors.length > 0) {
-      // Nếu còn cả Undercover và Mr.White, cả hai cùng thắng
-      if (aliveUndercovers.length > 0 && aliveMrWhites.length > 0) {
-        setWinner("impostor");
-        setGameState("ended");
-        setShowResults(true);
-        toast.success("Undercover và Mr.White đã chiến thắng! 🕵️🎭", {
-          duration: 3000,
-        });
-        return;
-      }
-      // Nếu chỉ còn Undercover
-      if (aliveUndercovers.length > 0) {
-        setWinner("undercover");
-        setGameState("ended");
-        setShowResults(true);
-        toast.success("Undercover đã chiến thắng! 🕵️", { duration: 3000 });
-        return;
-      }
-      // Nếu chỉ còn Mr.White
-      if (aliveMrWhites.length > 0) {
-        setWinner("mrwhite");
-        setGameState("ended");
-        setShowResults(true);
-        toast.success("Mr.White đã chiến thắng! 🎭", { duration: 3000 });
-        return;
-      }
+    // Mr.White thắng khi còn sống và chỉ còn 2 người chơi
+    if (alivePlayers.length === 2 && aliveMrWhites.length > 0) {
+      setWinner("mrwhite");
+      setGameState("ended");
+      setShowResults(true);
+      toast.success("Mr.White đã chiến thắng! 🎭", { duration: 3000 });
+      return;
+    }
+
+    // Undercover thắng khi số lượng Undercover >= số dân thường
+    if (aliveUndercovers.length >= aliveCivilians.length) {
+      setWinner("undercover");
+      setGameState("ended");
+      setShowResults(true);
+      toast.success("Undercover đã chiến thắng! 🕵️", { duration: 3000 });
+      return;
     }
   };
 
@@ -474,57 +522,6 @@ const Game: FC = () => {
     setCurrentRound((prev) => prev + 1);
     toast.success("Đã bỏ qua lượt vote này!");
   };
-
-  // Thêm nội dung luật chơi
-  const gameRules = [
-    {
-      title: "Mục tiêu",
-      content:
-        "- Dân thường: Tìm và loại Undercover và Mr. White\n- Undercover: Giả làm dân thường và loại họ\n- Mr. White: Đoán được từ của dân thường",
-    },
-    {
-      title: "Cách chơi",
-      content:
-        "1. Mỗi người chơi sẽ được giao một vai trò và một từ (Mr. White không có từ)\n2. Lần lượt mô tả từ của mình mà không nói trực tiếp từ đó\n3. Sau mỗi vòng, người chơi bỏ phiếu loại một người\n4. Khi Mr. White bị vote, có cơ hội đoán từ để thắng",
-    },
-    {
-      title: "Ví dụ cách mô tả",
-      content:
-        "Ví dụ cặp từ: Cà phê ⟷ Trà\n\n" +
-        "Dân thường (Cà phê):\n" +
-        '- "Thức uống này giúp tỉnh táo buổi sáng"\n' +
-        '- "Màu đen, thường uống nóng"\n' +
-        '- "Việt Nam nổi tiếng xuất khẩu loại hạt này"\n\n' +
-        "Undercover (Trà):\n" +
-        '- "Thức uống phổ biến mỗi sáng"\n' +
-        '- "Có thể uống nóng hoặc đá"\n' +
-        '- "Thường pha từ lá khô"\n\n' +
-        "Mr. White:\n" +
-        "- Lắng nghe kỹ và đoán từ chung của các mô tả\n" +
-        "- Mô tả mập mờ để không bị lộ",
-    },
-    {
-      title: "Mẹo chơi",
-      content:
-        "Dân thường:\n" +
-        "- Mô tả đủ rõ để đồng đội hiểu nhưng không quá rõ để Undercover bắt chước\n" +
-        "- Chú ý cách mô tả của người khác, tìm điểm khác biệt\n" +
-        "- Có thể thử test người khác bằng cách mô tả chi tiết đặc trưng\n\n" +
-        "Undercover:\n" +
-        "- Cố gắng mô tả trùng với dân thường nhất có thể\n" +
-        "- Không nên quá im lặng hoặc quá nổi bật\n" +
-        "- Có thể giả vờ nghi ngờ người khác để đánh lạc hướng\n\n" +
-        "Mr. White:\n" +
-        "- Quan sát kỹ những người tự tin khi mô tả\n" +
-        "- Mô tả mơ hồ, dùng từ có thể áp dụng cho nhiều thứ\n" +
-        "- Khi bị vote, tập trung vào những mô tả rõ ràng nhất để đoán từ",
-    },
-    {
-      title: "Điều kiện thắng",
-      content:
-        "- Dân thường thắng: Loại hết Undercover và Mr. White\n- Undercover thắng: Số Undercover ≥ số dân thường\n- Mr. White thắng: Đoán đúng từ hoặc sống sót đến 2 người cuối",
-    },
-  ];
 
   const clearWordHistory = () => {
     localStorage.removeItem("usedWordPairs");
